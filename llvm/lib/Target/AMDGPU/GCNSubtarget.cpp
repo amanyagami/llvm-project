@@ -22,6 +22,7 @@
 #include "Utils/AMDGPUBaseInfo.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/CodeGen/GlobalISel/InlineAsmLowering.h"
+#include "llvm/CodeGen/MachinePipeliner.h"
 #include "llvm/CodeGen/MachineScheduler.h"
 #include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/IR/DiagnosticInfo.h"
@@ -448,6 +449,14 @@ void GCNSubtarget::overridePostRASchedPolicy(MachineSchedPolicy &Policy,
     dbgs() << "Post-MI-sched direction (" << F.getName() << "): " << DirStr
            << '\n';
   });
+}
+
+void GCNSubtarget::overridePipelinerPolicy(
+    MachinePipelinerPolicy &Policy) const {
+  // MFMA latencies push the MII of otherwise pipelineable loops past the
+  // generic limit.
+  Policy.MaxMII = 256;
+  Policy.ShouldLimitRegPressure = true;
 }
 
 void GCNSubtarget::mirFileLoaded(MachineFunction &MF) const {
