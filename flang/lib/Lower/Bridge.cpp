@@ -5548,7 +5548,7 @@ private:
           Fortran::evaluate::CanBuildSplitSumExpressionTree(assign.lhs,
                                                             assign.rhs)) {
         rewritten =
-            Fortran::evaluate::TryBuildSplitSumExpressionTree(assign.rhs);
+            Fortran::evaluate::TryBuildSplitSumExpressionTrees(assign.rhs);
         if (rewritten)
           rhsExpr = &*rewritten;
       }
