@@ -1116,6 +1116,19 @@ void CheckScopeConstraints(const SourceStmtList &stmts,
   }
 }
 
+// Record the statements that a branch may name, for lowering to consult when
+// it records the targets of a branch.  Statements are identified by source
+// position because a label is only unique within one program unit.
+static void RecordLegalBranchTargets(
+    const TargetStmtMap &labels, SemanticsContext &context) {
+  for (const auto &[label, info] : labels) {
+    if (info.labeledStmtClassificationSet.test(TargetStatementEnum::Branch) ||
+        info.labeledStmtClassificationSet.test(
+            TargetStatementEnum::CompatibleBranch))
+      context.RecordLegalBranchTarget(info.parserCharBlock);
+  }
+}
+
 void CheckBranchTargetConstraints(const SourceStmtList &stmts,
     const TargetStmtMap &labels, SemanticsContext &context) {
   for (const auto &stmt : stmts) {
@@ -1229,6 +1242,7 @@ bool CheckConstraints(ParseTreeAnalyzer &&parseTreeAnalysis) {
     CheckDataTransferConstraints(dataTransfers, labels, scopes, context);
     const auto &assigns{programUnit.assignStmtSources};
     CheckAssignConstraints(assigns, labels, scopes, context);
+    RecordLegalBranchTargets(labels, context);
   }
   return !context.AnyFatalError();
 }

@@ -1049,11 +1049,27 @@ private:
             // Mark every possible target of the assigned GO TO so that
             // wrappability analyses can see any escape from an enclosing
             // construct.
+            //
+            // Only statements that a branch may name are marked.  Marking any
+            // other statement would give it a block, and lowering picks the
+            // targets of the branch it generates by testing for one, so a
+            // program that branches to a statement that is not a branch
+            // target would jump into it instead of reaching the run-time
+            // error it is supposed to get.  Label analysis has already
+            // classified every labeled statement, so ask it rather than
+            // deriving the answer again from the parse tree.
+            auto markIfBranchTarget = [&](parser::Label label) {
+              lower::pft::Evaluation *target{
+                  labelEvaluationMap->find(label)->second};
+              assert(target && "missing branch target evaluation");
+              if (semanticsContext.IsLegalBranchTarget(target->position))
+                markBranchTarget(eval, *target);
+            };
             const auto &labelList = std::get<std::list<parser::Label>>(s.t);
             if (!labelList.empty()) {
               // Explicit target list: `go to v, (l1, l2, ...)`.
               for (const auto &label : labelList)
-                markBranchTarget(eval, label);
+                markIfBranchTarget(label);
             } else {
               // No explicit list (`go to v`): fall back to the set of labels
               // that have been previously ASSIGN'd to v.
@@ -1065,7 +1081,7 @@ private:
                 auto iter = assignSymbolLabelMap->find(*sym);
                 if (iter != assignSymbolLabelMap->end())
                   for (auto label : iter->second)
-                    markBranchTarget(eval, label);
+                    markIfBranchTarget(label);
               }
             }
             eval.isUnstructured = true;

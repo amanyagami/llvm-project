@@ -377,6 +377,24 @@ public:
   // Top-level ProgramTrees are owned by the SemanticsContext for persistence.
   ProgramTree &SaveProgramTree(ProgramTree &&);
 
+  // Label analysis classifies every labeled statement, and only some of those
+  // classifications may be named by a statement that branches.  Lowering needs
+  // the same distinction when it records the targets of a branch, so the
+  // positions of the statements that may be branched to are kept here rather
+  // than being derived a second time from the parse tree.
+  //
+  // A statement is identified by its source position, which is unique, because
+  // a label is only unique within one program unit.  Recorded by
+  // ValidateLabels(); querying it before that has run reports every statement
+  // as not a branch target.
+  void RecordLegalBranchTarget(parser::CharBlock statementPosition) {
+    legalBranchTargets_.insert(statementPosition);
+  }
+  bool IsLegalBranchTarget(parser::CharBlock statementPosition) const {
+    return legalBranchTargets_.find(statementPosition) !=
+        legalBranchTargets_.end();
+  }
+
 private:
   struct ScopeIndexComparator {
     bool operator()(parser::CharBlock, parser::CharBlock) const;
@@ -389,6 +407,7 @@ private:
       const parser::CharBlock &, const Symbol &, parser::MessageFixedText &&);
   void CheckError(const Symbol &);
 
+  std::set<parser::CharBlock> legalBranchTargets_;
   const common::IntrinsicTypeDefaultKinds &defaultKinds_;
   const common::LanguageFeatureControl &languageFeatures_;
   const common::LangOptions &langOpts_;
