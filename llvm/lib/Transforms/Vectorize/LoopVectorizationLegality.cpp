@@ -471,8 +471,7 @@ int LoopVectorizationLegality::isConsecutivePtr(Type *AccessTy,
   // Check if the pointer is derived from a a monotonic PHI. If so, return a
   // conservative stride (assuming the PHI is always updated).
   for (const MonotonicDescriptor &MD : getMonotonicPHIs().values()) {
-    const SCEV *PtrSCEV = MD.getCompressedPtrs().lookup(Ptr);
-    if (PtrSCEV)
+    if (const SCEV *PtrSCEV = MD.getCompressedPtrs().lookup(Ptr))
       return getStrideFromAddRec(cast<SCEVAddRecExpr>(PtrSCEV), TheLoop,
                                  AccessTy, Ptr, PSE)
           .value_or(0);
